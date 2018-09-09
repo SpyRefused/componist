@@ -137,3 +137,72 @@ checkpoints = sorted(checkpoints, key=lambda cp: cp.stat().st_mtime)
 checkpoints = [cp.with_suffix('') for cp in checkpoints]
 latest = str(checkpoints[-1])
 checkpoints
+
+# To test, reset the model and load the latest checkpoint:
+
+model = create_model()
+model.load_weights(latest)
+loss, acc = model.evaluate(test_images, test_labels)
+print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+
+# 4) What are these files?
+# The above code stores the weights to a collection of checkpoint-formatted files that contain only the trained
+# weights in a binary format. Checkpoints contain: * One or more shards that contain your model's weights.
+# * An index file that indicates which weights are stored in a which shard.
+#
+# If you are only training a model on a single machine, you'll have one shard with the suffix: .data-00000-of-00001
+
+# 5) Manually save weights
+# Above you saw how to load the weights into a model.
+#
+# Manually saving the weights is just as simple, use the Model.save_weights method.
+
+# Save the weights
+model.save_weights('./checkpoints/my_checkpoint')
+
+# Restore the weights
+model = create_model()
+model.load_weights('./checkpoints/my_checkpoint')
+
+loss,acc = model.evaluate(test_images, test_labels)
+print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+
+# 6) Save the entire model
+# The entire model can be saved to a file that contains the weight values, the model's configuration,
+# and even the optimizer's configuration. This allows you to checkpoint a model and resume training later—from
+# the exact same state—without access to the original code.
+#
+# Saving a fully-functional model in Keras is very useful—you can load them in TensorFlow.js
+# and then train and run them in web browsers.
+#
+# Keras provides a basic save format using the HDF5 standard.
+# For our purposes, the saved model can be treated as a single binary blob.
+
+model = create_model()
+
+model.fit(train_images, train_labels, epochs=5)
+
+# Save entire model to a HDF5 file
+model.save('my_model.h5')
+
+# Now recreate the model from that file:
+
+# Recreate the exact same model, including weights and optimizer.
+
+new_model = keras.models.load_model('my_model.h5')
+new_model.summary()
+
+# Check its accuracy:
+
+loss, acc = new_model.evaluate(test_images, test_labels)
+print("Restored model, accuracy: {:5.2f}%".format(100*acc))
+
+# This technique saves everything:
+#  - The weight values
+#  - The model's configuration(architecture)
+#  - The optimizer configuration
+#
+# Keras saves models by inspecting the architecture. Currently, it is not able to save TensorFlow optimizers
+# (from tf.train). When using those you will need to re-compile the model after loading,
+# and you will loose the state of the optimizer.
+
